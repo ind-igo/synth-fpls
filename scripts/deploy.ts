@@ -4,14 +4,17 @@ import { Contract } from "@ethersproject/contracts";
 // you'll find the Hardhat Runtime Environment's members available in the global scope.
 import { ethers } from "hardhat";
 
-import { Greeter__factory } from "../typechain";
-
 async function main(): Promise<void> {
-  const Greeter: Greeter__factory = await ethers.getContractFactory("Greeter");
-  const greeter: Contract = await Greeter.deploy("Hello, Buidler!");
-  await greeter.deployed();
+  const [deployer] = await ethers.getSigners();
 
-  console.log("Greeter deployed to: ", greeter.address);
+  console.log("Account balance:", (await deployer.getBalance()).toString());
+
+  const floatiesFactory = await ethers.getContractFactory("FloatiesLongShortPairFinancialProductLibrary");
+  const floaties = await floatiesFactory.deploy();
+
+  await floaties.deployed();
+
+  console.log("Floaties deployed to:", floaties.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere and properly handle errors.
