@@ -17,7 +17,7 @@ contract FloatiesLongShortPairFinancialProductLibrary is LongShortPairFinancialP
     struct FloatiesParameters {
         uint256 priceCap;
         uint256 priceFloor;
-        uint256 priceStart;
+        uint256 initialPrice;
         uint256 leverageFactor;
     }
 
@@ -27,7 +27,7 @@ contract FloatiesLongShortPairFinancialProductLibrary is LongShortPairFinancialP
         address longShortPair,
         uint256 priceCap,
         uint256 priceFloor,
-        uint256 priceStart,
+        uint256 initialPrice,
         uint256 leverageFactor
     ) public nonReentrant() {
         require(ExpiringContractInterface(longShortPair).expirationTimestamp() != 0, "Invalid LSP address");
@@ -39,18 +39,25 @@ contract FloatiesLongShortPairFinancialProductLibrary is LongShortPairFinancialP
         longShortPairParameters[longShortPair] = FloatiesParameters({
             priceCap: priceCap,
             priceFloor: priceFloor,
-            priceStart: priceStart,
+            initialPrice: initialPrice,
             leverageFactor: leverageFactor
         });
     }
 
-    function percentageLongCollateralAtExpiry(int256 expiryPrice) public view override returns (uint256) {
+    function percentageLongCollateralAtExpiry(int256 expiryPrice)
+        public
+        view
+        override
+        nonReentrantView()
+        returns (uint256)
+    {
         FloatiesParameters memory params = longShortPairParameters[msg.sender];
 
-        // 2x Leveraged Eth Token (with a price cap and price floor) = MIN(MAX((1+((eth_price/start_price)-1)*2),floor),cap)
+        // 2x Leveraged Eth Token (with a price cap and price floor) =
+        //      MIN(MAX((1+((eth_price/start_price)-1)*2),floor),cap)
         // Note: ETH collateral used for this synth
         //example:
-        //priceStart = $3000 (ETH/USD)
+        //initialPrice = $3000 (ETH/USD)
         //expiryPrice = $3300 (ETH/USD)
         //cap = 1.5 (ETH)
         //floor = 0.5 (ETH)
@@ -66,7 +73,7 @@ contract FloatiesLongShortPairFinancialProductLibrary is LongShortPairFinancialP
         uint256 positiveExpiryPrice = expiryPrice > 0 ? uint256(expiryPrice) : 0;
 
         FixedPoint.Unsigned memory ethReturnFactor =
-            FixedPoint.div(FixedPoint.Unsigned(positiveExpiryPrice), params.priceStart);
+            FixedPoint.div(FixedPoint.Unsigned(positiveExpiryPrice), params.initialPrice);
 
         // Returns can be negative so convert to int for now
         int256 intEthReturn = int256(ethReturnFactor.rawValue) - 1e18;
