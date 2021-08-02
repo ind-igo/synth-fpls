@@ -79,9 +79,10 @@ contract ImpermanentLossLongShortPairFinancialProductLibrary is LongShortPairFin
         int256 denominator = priceRatio + 1;
         int256 impLoss = (numerator.div(denominator)) - 1;
 
-        // Take inverse of IL and add 1 to make synth payout. Will be positive.
+        // Take absolute value of IL and add 1 to make positive synth payout
         int256 impLossPayout = PRBMathSD59x18.abs(impLoss) + 1;
 
+        // If price is out of bounds, return the closest bound instead of the actual payout
         if (impLossPayout <= int256(params.priceFloor)) return params.priceFloor;
         if (impLossPayout >= int256(params.priceCap)) return params.priceCap;
 
