@@ -55,13 +55,14 @@ contract FloatiesLongShortPairFinancialProductLibrary is LongShortPairFinancialP
 
         // 2x Leveraged Eth Token (with a price cap and price floor) =
         //      MIN(MAX((1+((eth_price/start_price)-1)*2),floor),cap)
+
         // Note: ETH collateral used for this synth
-        //example:
-        //initialPrice = $3000 (ETH/USD)
-        //expiryPrice = $3300 (ETH/USD)
-        //cap = 1.5 (ETH)
-        //floor = 0.5 (ETH)
-        //leverageFactor = 2
+        //  Ex.
+        //  initialPrice = $3000 (ETH/USD)
+        //  expiryPrice = $3300 (ETH/USD)
+        //  cap = 1.5 (ETH)
+        //  floor = 0.5 (ETH)
+        //  leverageFactor = 2
 
         // MIN(MAX((1+((3300/3000)-1)*2), 0.5), 1.5) = 1.2 ETH
 

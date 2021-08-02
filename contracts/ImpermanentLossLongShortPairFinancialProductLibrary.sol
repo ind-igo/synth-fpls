@@ -1,18 +1,21 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.4;
 
-import "@openzeppelin/contracts/utils/math/SignedSafeMath.sol";
-import "@openzeppelin/contracts/utils/math/Math.sol";
+//import "@openzeppelin/contracts/utils/math/SignedSafeMath.sol";
+//import "@openzeppelin/contracts/utils/math/Math.sol";
 
 import "./interfaces/LongShortPairFinancialProductLibrary.sol";
 import "./libraries/Lockable.sol";
+import "prb-math/contracts/PRBMathSD59x18.sol";
+
+//import "prb-math/contracts/PRBMathUD60x18.sol";
 
 /**
  * @title Impermanent Loss Long Short Pair Financial Product Library
  */
 contract ImpermanentLossLongShortPairFinancialProductLibrary is LongShortPairFinancialProductLibrary, Lockable {
-    using FixedPoint for FixedPoint.Unsigned;
-    using SignedSafeMath for int256;
+    //using FixedPoint for FixedPoint.Unsigned;
+    using PRBMathSD59x18 for int256;
 
     struct ImpermanentLossParameters {
         uint256 priceCap;
@@ -45,8 +48,6 @@ contract ImpermanentLossLongShortPairFinancialProductLibrary is LongShortPairFin
     // il_payout = abs((2 * sqrt(p) / p + 1) - 1) + 1
     //   where p = price_initial / price_expiry
 
-    // Note: ETH collateral used for this synth
-
     // TODO write example
     // Ex.
     // price_initial =
@@ -69,29 +70,26 @@ contract ImpermanentLossLongShortPairFinancialProductLibrary is LongShortPairFin
         require(params.priceCap != 0 || params.priceFloor != 0, "Params not set for calling LSP");
 
         // Expiry price should always be above 0
-        uint256 positiveExpiryPrice = expiryPrice > 0 ? uint256(expiryPrice) : 0;
+        int256 positiveExpiryPrice = expiryPrice > 0 ? expiryPrice : int256(0);
 
         // Find ratio of price_initial to price_expiry
-        FixedPoint.Unsigned memory priceRatio =
-            FixedPoint.div(
-                FixedPoint.fromUnscaledUint(params.initialPrice),
-                FixedPoint.fromUnscaledUint(positiveExpiryPrice)
-            );
+        int256 priceRatio = int256(params.initialPrice).div(positiveExpiryPrice);
+
+        // TODO remove if unneeded
+        //FixedPoint.Unsigned memory priceRatio =
+        //    FixedPoint.div(
+        //        FixedPoint.fromUnscaledUint(params.initialPrice),
+        //        FixedPoint.fromUnscaledUint(positiveExpiryPrice)
+        //    );
 
         // Perform IL calculation
-        int256 impLoss = 0; // 2 * sqrt(priceRatio) / (priceRatio + 1)
+        int256 numerator = 2 * PRBMathSD59x18.sqrt(priceRatio);
+        int256 denominator = priceRatio + 1;
+        int256 impLoss = (numerator.div(denominator)) - 1;
 
-        // Take inverse of IL and add 1 to make synth payout
-        uint256 impLossPayout = 0; //abs(impLoss) + 1
+        // Take inverse of IL and add 1 to make synth payout. Will be positive.
+        int256 impLossPayout = PRBMathSD59x18.abs(impLoss) + 1;
 
-        //int256 levEthReturn = intEthReturn * int256(params.leverageFactor);
-        //int256 levEthPrice = levEthReturn + 1e18;
-        ////ensure positivity before converting back to uint
-        //uint256 positiveLevEthPrice = levEthPrice >= int256(params.priceFloor) ? uint256(levEthPrice) : 0;
-        //uint256 upperCappedLevEthPrice =
-        //    FixedPoint.max(FixedPoint.Unsigned(positiveLevEthPrice), FixedPoint.Unsigned(params.priceFloor)).rawValue;
-        //return
-        //    FixedPoint.min(FixedPoint.Unsigned(upperCappedLevEthPrice), FixedPoint.Unsigned(params.priceCap)).rawValue;
-        //do one more test on this
+        return uint256(impLossPayout);
     }
 }
