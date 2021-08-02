@@ -14,7 +14,6 @@ import "prb-math/contracts/PRBMathSD59x18.sol";
  * @title Impermanent Loss Long Short Pair Financial Product Library
  */
 contract ImpermanentLossLongShortPairFinancialProductLibrary is LongShortPairFinancialProductLibrary, Lockable {
-    //using FixedPoint for FixedPoint.Unsigned;
     using PRBMathSD59x18 for int256;
 
     struct ImpermanentLossParameters {
@@ -75,13 +74,6 @@ contract ImpermanentLossLongShortPairFinancialProductLibrary is LongShortPairFin
         // Find ratio of price_initial to price_expiry
         int256 priceRatio = int256(params.initialPrice).div(positiveExpiryPrice);
 
-        // TODO remove if unneeded
-        //FixedPoint.Unsigned memory priceRatio =
-        //    FixedPoint.div(
-        //        FixedPoint.fromUnscaledUint(params.initialPrice),
-        //        FixedPoint.fromUnscaledUint(positiveExpiryPrice)
-        //    );
-
         // Perform IL calculation
         int256 numerator = 2 * PRBMathSD59x18.sqrt(priceRatio);
         int256 denominator = priceRatio + 1;
@@ -89,6 +81,9 @@ contract ImpermanentLossLongShortPairFinancialProductLibrary is LongShortPairFin
 
         // Take inverse of IL and add 1 to make synth payout. Will be positive.
         int256 impLossPayout = PRBMathSD59x18.abs(impLoss) + 1;
+
+        if (impLossPayout <= int256(params.priceFloor)) return params.priceFloor;
+        if (impLossPayout >= int256(params.priceCap)) return params.priceCap;
 
         return uint256(impLossPayout);
     }
